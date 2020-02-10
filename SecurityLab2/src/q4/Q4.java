@@ -1,13 +1,10 @@
 package q4;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.InvalidKeyException;
@@ -38,26 +35,30 @@ public class Q4 {
 			System.out.println("Server is listening on port " + port);
 
 			while(true) {
-				Socket socket = server.accept();
+				Socket serverSocket = server.accept();
+
+                DataInputStream dis = new DataInputStream(serverSocket.getInputStream());
+                DataOutputStream dos = new DataOutputStream(serverSocket.getOutputStream());
 				
 				// Read name
-				String name = readFromStream(socket.getInputStream());
+				String name = readFromStream(dis);
 				System.out.println("Hello " + name);
 				
 				// Send Challenge
-				writeToStream(socket.getOutputStream(), challenge);
+				writeToStream(dos, challenge);
 				
 				// Read HMAC Back
-				byte[] foundHmac = getHmacFromBase64(readFromStream(socket.getInputStream()));
-				
+				byte[] foundHmac = getHmacFromBase64(readFromStream(dis));
+
 				// Compare and Report
-				writeToStream(socket.getOutputStream(), 
+				writeToStream(dos, 
 					Arrays.equals(foundHmac, hmac)
 						? "success"
 						: "failure"
 					);
 				
-				socket.close();
+				System.out.println("closed server");
+				serverSocket.close();
 			}
 
 		} catch (IOException e) {
@@ -69,18 +70,15 @@ public class Q4 {
 		return Base64.getDecoder().decode(encodedBase64);
 	}
 
-	private static String readFromStream(InputStream inputStream) throws IOException {
-		BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-		String out = "", line = "";
-		while((line = br.readLine()) != null)
-			out += line;
-		return out;
+	private static String readFromStream(DataInputStream br) throws IOException {
+		String found = br.readUTF();
+		System.out.println("Read: " + found);
+		return found;
 	}
-	
-	private static void writeToStream(OutputStream outputStream, String message) throws IOException {
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
-		bw.write(message);
-		bw.close();
+
+	private static void writeToStream(DataOutputStream bw, String message) throws IOException {
+		System.out.println("Wrote: " + message);
+		bw.writeUTF(message);
 	}
 
 	public static byte[] getHMac(String message) throws NoSuchAlgorithmException, InvalidKeyException {
@@ -92,6 +90,7 @@ public class Q4 {
 	public static void generateAndStoreKey() throws IOException {
 		key = new KeyManager().getKey();
 		String base64Key = Base64.getEncoder().encodeToString(key.getEncoded());
+		System.out.println("Key Write: " + base64Key);
 		writeToFile("data/secretKey", base64Key);
 	}
 

@@ -1,13 +1,10 @@
 package q5;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -31,22 +28,25 @@ public class Q5 {
 		readAndStoreKey();
 		
 		try(Socket clientSocket = new Socket("localhost", port)){
-			
-			// Send a name
-			writeToStream(clientSocket.getOutputStream(), "Aditya");
+            DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
+            DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
 
+			// Send a name
+			writeToStream(dos, "Aditya");
+			
 			// Read the challenge string back from the server
-			String challenge = readFromStream(clientSocket.getInputStream());
+			String challenge = readFromStream(dis);
 			
 			// HMAC it using the secret key.
 			byte[] hmac = getHMac(challenge);
 			
 			// Send the HMAC to the server
-			writeToStream(clientSocket.getOutputStream(), getBase64FromHmac(hmac));
+			writeToStream(dos, getBase64FromHmac(hmac));
 			
 			// Read the reply and print it to the screen
-			System.out.println("Reply from server:" + readFromStream(clientSocket.getInputStream()));
+			System.out.println("Reply from server:" + readFromStream(dis));
 			
+			System.out.println("closed client");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -58,7 +58,7 @@ public class Q5 {
 	}
 	
 	private static void readAndStoreKey() throws IOException {
-		byte[] decodedBase64 = Base64.getDecoder().decode(readFromFile("data/secretKey"));	
+		byte[] decodedBase64 = Base64.getDecoder().decode(readFromFile("data/secretKey"));
 		key = new SecretKeySpec(decodedBase64, 0, decodedBase64.length, "HmacSHA256");
 	}
 
@@ -68,18 +68,15 @@ public class Q5 {
 		return mac.doFinal(message.getBytes());
 	}
 	
-	private static void writeToStream(OutputStream outputStream, String message) throws IOException {
-		BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(outputStream));
-		bw.write(message);
-		bw.close();
+	private static String readFromStream(DataInputStream br) throws IOException {
+		String found = br.readUTF();
+		System.out.println("Read: " + found);
+		return found;
 	}
 
-	private static String readFromStream(InputStream inputStream) throws IOException {
-		BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-		String out = "", line = "";
-		while((line = br.readLine()) != null)
-			out += line;
-		return out;
+	private static void writeToStream(DataOutputStream bw, String message) throws IOException {
+		System.out.println("Wrote: " + message);
+		bw.writeUTF(message);
 	}
 
 	private static String readFromFile(String fileName) throws IOException {
@@ -90,7 +87,8 @@ public class Q5 {
 		while ((line = br.readLine()) != null) {
 			output += line;
 		}
-		br.close();
+		br.close();	
+		System.out.println("Key Read: " + output);
 		return output;
 	}
 }
