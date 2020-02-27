@@ -57,20 +57,6 @@ public class Q5 {
 		// Read DH parameters
 		String dhParam= r.nextLine();
 
-		// Read the clients public key and Base64 decode it
-		String input = r.nextLine();
-		byte[] serverPublicKeyBytes = Base64.getDecoder().decode(input);
-		
-		// convert it to a public key object
-		KeyFactory keyFactory = KeyFactory.getInstance("DH");
-		X509EncodedKeySpec x509KeySpec1 = new X509EncodedKeySpec(serverPublicKeyBytes);
-		PublicKey clientPublicKey = keyFactory.generatePublic(x509KeySpec1);
-
-		// Send own public key as Base64 encoded string
-		String publicKeyBase64 = Base64.getEncoder().encodeToString(clientPublicKey.getEncoded());
-		p.println(publicKeyBase64);
-		p.flush();
-
 		// Generate own public key private key pair
 		String[] dhParams = dhParam.split(",");
 
@@ -84,6 +70,20 @@ public class Q5 {
 		keyPairGen.initialize(dhSpec);
 		
 		KeyPair keyPair = keyPairGen.generateKeyPair();
+		
+		// Read the clients public key and Base64 decode it
+		String input = r.nextLine();
+		byte[] serverPublicKeyBytes = Base64.getDecoder().decode(input);
+		
+		// convert it to a public key object
+		KeyFactory keyFactory = KeyFactory.getInstance("DH");
+		X509EncodedKeySpec x509KeySpec1 = new X509EncodedKeySpec(serverPublicKeyBytes);
+		PublicKey clientPublicKey = keyFactory.generatePublic(x509KeySpec1);
+
+		// Send own public key as Base64 encoded string
+		String publicKeyBase64 = Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
+		p.println(publicKeyBase64);
+		p.flush();
 
 		// Generate a symmetric key using own private key and servers public key.
 		KeyAgreement ka = KeyAgreement.getInstance("DH");
